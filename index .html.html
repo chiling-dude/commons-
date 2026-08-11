@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commons — the world's open floor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+/* ============================================================
+   1. TOKENS — colors, type, radii. Accent hue never changes
+   between themes; only surfaces/text flip. Edit here to
+   restyle the whole app.
+   ============================================================ */
+:root{
+  --radius-lg:28px;
+  --radius-md:18px;
+  --radius-sm:12px;
+  --font-display:'Outfit',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+html[data-theme="light"]{
+  --bg:#FFFFFF;
+  --bg-2:#F5F5F5;
+  --surface:rgba(255,255,255,0.6);
+  --surface-solid:#FFFFFF;
+  --surface-2:rgba(0,0,0,0.045);
+  --border:rgba(0,0,0,0.14);
+  --text:#111111;
+  --text-muted:#6B6B6B;
+  --accent:#111111;
+  --accent-2:#111111;
+  --shadow:0 10px 40px rgba(0,0,0,0.10);
+  --input-bg:rgba(0,0,0,0.03);
+  --danger:#B23A3A;
+  --success:#3A7D5C;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0D;
+  --bg-2:#161616;
+  --surface:rgba(255,255,255,0.06);
+  --surface-solid:#1A1A1A;
+  --surface-2:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.16);
+  --text:#F2F2F2;
+  --text-muted:#9A9A9A;
+  --accent:#F2F2F2;
+  --accent-2:#F2F2F2;
+  --shadow:0 10px 40px rgba(0,0,0,0.55);
+  --input-bg:rgba(255,255,255,0.05);
+  --danger:#D3696E;
+  --success:#6FB894;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  font-family:var(--font-body);
+  color:var(--text);
+  background:var(--bg);
+  overflow-x:hidden;
+  transition:background .4s var(--ease),color .4s var(--ease);
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.display{font-family:var(--font-display);}
+button,input{font-family:inherit;}
+a{color:inherit;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:0.001ms !important;transition-duration:0.001ms !important;}
+}
+
+/* ============================================================
+   2. AMBIENT MESH BACKGROUND — signature element, sits behind
+   every screen so the glass panels always have something to
+   refract.
+   ============================================================ */
+.mesh{
+  position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+}
+.mesh span{
+  position:absolute;border-radius:50%;filter:blur(70px);opacity:.55;
+  animation:drift 22s ease-in-out infinite;
+}
+html[data-theme="dark"] .mesh span{opacity:.35;}
+.mesh span:nth-child(1){width:420px;height:420px;background:var(--accent);top:-120px;left:-100px;}
+.mesh span:nth-child(2){width:380px;height:380px;background:var(--accent-2);top:20%;right:-140px;animation-delay:-6s;}
+.mesh span:nth-child(3){width:320px;height:320px;background:var(--accent);opacity:.3;bottom:-100px;left:20%;animation-delay:-12s;}
+@keyframes drift{
+  0%,100%{transform:translate(0,0) scale(1);}
+  50%{transform:translate(30px,-40px) scale(1.08);}
+}
+
+/* ============================================================
+   3. GLASS UTILITY — used for auth card, icon badges, modals,
+   sidebar, message input, suspension panel.
+   ============================================================ */
+.glass{
+  background:var(--surface);
+  backdrop-filter:blur(20px) saturate(160%);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow);
+}
+.icon-badge{
+  width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface);
+  backdrop-filter:blur(14px) saturate(160%);
+  -webkit-backdrop-filter:blur(14px) saturate(160%);
+  border:1px solid var(--border);
+  cursor:pointer;transition:transform .2s var(--ease),background .2s;
+  color:var(--text);flex:none;
+}
+.icon-badge:hover{transform:translateY(-2px);}
+.icon-badge svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;}
+
+/* ============================================================
+   4. SCREENS — only .active is shown. JS swaps this class.
+   ============================================================ */
+.screen{
+  position:relative;z-index:1;min-height:100vh;display:none;
+}
+.screen.active{display:flex;}
+
+/* ---- Landing ---- */
+#screen-landing{
+  flex-direction:column;align-items:center;justify-content:center;
+  padding:40px 24px;text-align:center;
+}
+.brand-row{display:flex;align-items:center;gap:10px;margin-bottom:44px;}
+.brand-mark{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  display:flex;align-items:center;justify-content:center;
+}
+.brand-mark svg{width:16px;height:16px;stroke:var(--bg);fill:none;stroke-width:1.8;}
+.brand-name{font-family:var(--font-display);font-weight:700;font-size:1.15rem;letter-spacing:-.02em;}
+.hero-eyebrow{
+  font-family:var(--font-mono);font-size:.75rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--text-muted);margin-bottom:18px;
+}
+.hero-title{
+  font-size:clamp(2.4rem,6vw,4.4rem);font-weight:700;letter-spacing:-.03em;
+  line-height:1.05;max-width:820px;margin-bottom:22px;
+}
+.hero-title em{
+  font-style:normal;
+  background:linear-gradient(120deg,var(--accent),var(--accent-2));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero-sub{
+  max-width:560px;color:var(--text-muted);font-size:1.05rem;line-height:1.6;margin-bottom:36px;
+}
+.btn{
+  font-family:var(--font-display);font-weight:600;font-size:.95rem;
+  padding:14px 30px;border-radius:999px;border:none;cursor:pointer;
+  transition:transform .2s var(--ease),box-shadow .2s var(--ease);
+}
+.btn-primary{
+  background:linear-gradient(120deg,var(--accent),var(--accent-2));
+  color:#fff;box-shadow:0 8px 24px rgba(140,127,224,0.35);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(140,127,224,0.42);}
+.btn-ghost{
+  background:transparent;color:var(--text);border:1px solid var(--border);
+}
+.btn-ghost:hover{background:var(--surface-2);}
+.hero-actions{display:flex;gap:12px;margin-bottom:56px;flex-wrap:wrap;justify-content:center;}
+.rule-strip{
+  display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:999px;
+  max-width:640px;font-size:.85rem;color:var(--text-muted);
+}
+.rule-strip b{color:var(--text);font-weight:600;}
+/* ---- Auth + Age gate (shared card layout) ---- */
+#screen-auth,#screen-agegate{
+  align-items:center;justify-content:center;padding:24px;
+}
+.card{
+  width:100%;max-width:400px;border-radius:var(--radius-lg);padding:36px 32px;
+}
+.card-eyebrow{
+  font-family:var(--font-mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-muted);margin-bottom:8px;
+}
+.card h2{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;}
+.card p.card-sub{color:var(--text-muted);font-size:.88rem;margin-bottom:26px;line-height:1.5;}
+.tabs{display:flex;gap:6px;margin-bottom:24px;padding:4px;border-radius:999px;background:var(--surface-2);}
+.tab{
+  flex:1;text-align:center;padding:9px 0;border-radius:999px;font-size:.85rem;font-weight:600;
+  cursor:pointer;color:var(--text-muted);transition:all .25s var(--ease);border:none;background:transparent;
+}
+.tab.active{background:linear-gradient(120deg,var(--accent),var(--accent-2));color:#fff;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:.78rem;font-weight:600;margin-bottom:6px;color:var(--text-muted);}
+.field input{
+  width:100%;padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);
+  background:var(--input-bg);color:var(--text);font-size:.92rem;transition:border .2s;
+}
+.field input:focus{border-color:var(--accent);}
+.field select{
+  width:100%;padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);
+  background:var(--input-bg);color:var(--text);font-size:.92rem;
+}
+.field select:focus{border-color:var(--accent);}
+.hint{font-size:.76rem;margin-top:6px;display:flex;align-items:center;gap:6px;min-height:16px;}
+.hint.ok{color:var(--success);}
+.hint.bad{color:var(--danger);}
+.hint.neutral{color:var(--text-muted);}
+.card .btn{width:100%;margin-top:6px;}
+.switch-line{text-align:center;font-size:.82rem;color:var(--text-muted);margin-top:18px;}
+.switch-line a{color:var(--accent);font-weight:600;cursor:pointer;text-decoration:none;}
+
+/* age gate */
+.age-icon{
+  width:54px;height:54px;border-radius:50%;margin:0 auto 18px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  display:flex;align-items:center;justify-content:center;
+}
+.age-icon svg{width:24px;height:24px;stroke:var(--bg);fill:none;stroke-width:1.8;}
+#screen-agegate .card{text-align:center;}
+.age-choices{display:flex;gap:10px;margin-top:22px;}
+.age-choices .btn{flex:1;}
+
+/* ---- Black/white minimalist mode — scoped to auth + account
+   creation only. Solid black stage, crisp white glass card,
+   no gradients, no secondary hues. ---- */
+.navy-auth{
+  background:#000000;
+  position:relative;
+}
+.navy-auth::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(640px 420px at 50% 0%, rgba(255,255,255,0.07), transparent 70%);
+  pointer-events:none;
+}
+.navy-auth .card{
+  --text:#000000;
+  --text-muted:#5B5B5B;
+  --border:rgba(0,0,0,0.10);
+  --surface-2:rgba(0,0,0,0.05);
+  --input-bg:#F4F4F4;
+  background:rgba(255,255,255,0.92);
+  backdrop-filter:blur(22px) saturate(140%);
+  -webkit-backdrop-filter:blur(22px) saturate(140%);
+  border:1px solid rgba(0,0,0,0.08);
+  box-shadow:0 24px 70px rgba(0,0,0,0.5);
+}
+.navy-auth .btn-primary{
+  background:#000000;color:#fff;box-shadow:0 10px 26px rgba(0,0,0,0.3);
+}
+.navy-auth .btn-primary:hover{background:#222222;box-shadow:0 12px 30px rgba(0,0,0,0.36);}
+.navy-auth .btn-ghost{border:1px solid rgba(0,0,0,0.16);color:#000000;}
+.navy-auth .btn-ghost:hover{background:rgba(0,0,0,0.05);}
+.navy-auth .tabs{background:rgba(0,0,0,0.06);}
+.navy-auth .tab.active{background:#000000;color:#fff;}
+.navy-auth .age-icon{background:#000000;}
+.navy-auth .age-icon svg{stroke:#ffffff;}
+.navy-auth .switch-line a{color:#000000;}
+
+/* ============================================================
+   5. APP SHELL — sidebar + topbar + chat
+   ============================================================ */
+#screen-app{width:100%;flex-direction:column;}
+.topbar{
+  display:flex;align-items:center;gap:16px;padding:14px 22px;position:sticky;top:0;z-index:5;
+  border-bottom:1px solid var(--border);
+}
+.topbar .brand-row{margin-bottom:0;}
+.search-wrap{
+  flex:1;max-width:420px;margin:0 auto;display:flex;align-items:center;gap:8px;
+  padding:9px 16px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);
+}
+.search-wrap svg{width:15px;height:15px;stroke:var(--text-muted);fill:none;stroke-width:1.8;flex:none;}
+.search-wrap input{border:none;background:transparent;outline:none;color:var(--text);font-size:.85rem;width:100%;}
+.topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.user-pill{
+  display:flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border-radius:999px;
+  background:var(--surface-2);border:1px solid var(--border);font-size:.82rem;font-weight:600;
+}
+.user-avatar{
+  width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:.7rem;font-weight:700;
+}
+
+.app-body{display:flex;flex:1;min-height:0;}
+
+/* sidebar */
+.sidebar{
+  width:270px;flex:none;border-right:1px solid var(--border);padding:18px 14px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:18px;
+}
+.side-section-label{
+  font-family:var(--font-mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text-muted);padding:0 8px;margin-bottom:8px;
+}
+.room-row{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-sm);
+  cursor:pointer;font-size:.87rem;color:var(--text);transition:background .18s;border:none;background:transparent;width:100%;text-align:left;
+}
+.room-row:hover{background:var(--surface-2);}
+.room-row.active{background:var(--surface-2);font-weight:600;box-shadow:inset 2px 0 0 var(--accent);}
+.room-row .rico{font-size:1rem;flex:none;}
+.room-row .chev{
+  margin-left:auto;width:12px;height:12px;stroke:var(--text-muted);fill:none;stroke-width:2;
+  transition:transform .2s;flex:none;
+}
+.room-row.expanded .chev{transform:rotate(90deg);}
+.region-list{padding-left:26px;display:none;flex-direction:column;gap:2px;margin-top:2px;}
+.region-list.open{display:flex;}
+.region-row{
+  padding:7px 10px;border-radius:var(--radius-sm);font-size:.82rem;color:var(--text-muted);
+  cursor:pointer;border:none;background:transparent;text-align:left;
+}
+.region-row:hover{background:var(--surface-2);color:var(--text);}
+.region-row.active{background:var(--surface-2);color:var(--text);font-weight:600;box-shadow:inset 2px 0 0 var(--accent-2);}
+.create-room-btn{
+  display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:var(--radius-sm);
+  font-size:.85rem;font-weight:600;color:var(--accent);cursor:pointer;border:1px dashed var(--border);background:transparent;width:100%;
+}
+.trending-row{
+  display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:var(--radius-sm);
+  font-size:.82rem;cursor:pointer;border:none;background:transparent;width:100%;text-align:left;color:var(--text);
+}
+.trending-row:hover{background:var(--surface-2);}
+.trending-row span.count{color:var(--text-muted);font-family:var(--font-mono);font-size:.72rem;}
+.no-results-msg{font-size:.8rem;color:var(--text-muted);padding:12px 10px;text-align:center;display:none;}
+.sidebar-footer{margin-top:auto;display:flex;flex-direction:column;gap:4px;padding-top:10px;border-top:1px solid var(--border);}
+.footer-link{
+  font-size:.78rem;color:var(--text-muted);cursor:pointer;padding:7px 10px;border-radius:var(--radius-sm);
+  background:transparent;border:none;text-align:left;
+}
+.footer-link:hover{background:var(--surface-2);color:var(--text);}
+
+/* chat panel */
+.chat-panel{flex:1;display:flex;flex-direction:column;min-width:0;}
+.chat-header{
+  padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;
+}
+.chat-header .rico-lg{font-size:1.4rem;}
+.chat-header h3{font-size:1.02rem;font-weight:700;}
+.chat-header p{font-size:.78rem;color:var(--text-muted);}
+.warning-banner{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 22px;background:rgba(217,108,122,0.12);border-bottom:1px solid var(--border);
+  font-size:.82rem;color:var(--text);
+}
+html[data-theme="dark"] .warning-banner{background:rgba(211,105,110,0.16);}
+.warning-banner button{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.9rem;flex:none;}
+.warning-banner button:hover{color:var(--text);}
+.messages{flex:1;overflow-y:auto;padding:20px 26px;display:flex;flex-direction:column;gap:16px;}
+.msg{display:flex;gap:12px;max-width:640px;}
+.msg-avatar{
+  width:32px;height:32px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:.72rem;font-weight:700;
+}
+.msg-body .msg-meta{display:flex;gap:8px;align-items:baseline;margin-bottom:3px;}
+.msg-body .msg-nick{font-size:.85rem;font-weight:700;}
+.msg-body .msg-time{font-size:.68rem;color:var(--text-muted);font-family:var(--font-mono);}
+.msg-action{
+  background:none;border:none;color:var(--text-muted);font-size:.68rem;cursor:pointer;
+  padding:2px 7px;border-radius:6px;opacity:0;transition:opacity .15s,background .15s;
+}
+.msg:hover .msg-action, .msg-action:focus-visible{opacity:1;}
+.msg-action:hover{background:var(--surface-2);color:var(--text);}
+.msg-body .msg-text{font-size:.9rem;line-height:1.5;color:var(--text);}
+.chat-input-wrap{padding:16px 22px 22px;}
+.chat-input{
+  display:flex;align-items:center;gap:10px;padding:8px 8px 8px 18px;border-radius:999px;
+}
+.chat-input input{
+  flex:1;border:none;background:transparent;outline:none;color:var(--text);font-size:.9rem;
+}
+.send-btn{background:linear-gradient(120deg,var(--accent),var(--accent-2));}
+.send-btn svg{stroke:var(--bg);}
+
+/* mobile sidebar toggle */
+.menu-toggle{display:none;}
+@media(max-width:860px){
+  .menu-toggle{display:flex;}
+  .sidebar{
+    position:fixed;left:0;top:0;bottom:0;z-index:20;transform:translateX(-100%);
+    transition:transform .3s var(--ease);background:var(--bg);width:82vw;max-width:300px;
+  }
+  .sidebar.open{transform:translateX(0);}
+  .search-wrap{display:none;}
+}
+
+/* ============================================================
+   6. MODALS — community rules
+   ============================================================ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(20,17,30,0.45);backdrop-filter:blur(4px);
+  z-index:30;display:none;align-items:center;justify-content:center;padding:20px;
+}
+.modal-overlay.active{display:flex;}
+.modal{width:100%;max-width:480px;border-radius:var(--radius-lg);padding:32px;max-height:80vh;overflow-y:auto;}
+.modal h3{font-size:1.2rem;font-weight:700;margin-bottom:6px;}
+.modal p.modal-sub{color:var(--text-muted);font-size:.83rem;margin-bottom:20px;}
+.rule-block{margin-bottom:18px;}
+.rule-block h4{font-size:.85rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.rule-block p{font-size:.83rem;color:var(--text-muted);line-height:1.55;}
+.escalation-steps{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+.esc-step{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);
+  background:var(--surface-2);font-size:.8rem;
+}
+.esc-step .esc-num{
+  font-family:var(--font-mono);font-size:.7rem;width:22px;height:22px;border-radius:50%;
+  background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;flex:none;
+}
+.modal-close{width:100%;margin-top:20px;}
+
+.report-item{padding:14px;border-radius:var(--radius-sm);background:var(--surface-2);margin-bottom:10px;}
+.report-item-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;}
+.report-item-nick{font-weight:700;font-size:.85rem;}
+.report-item-reason{font-size:.68rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--danger);flex:none;}
+.report-item-text{font-size:.85rem;color:var(--text);margin-bottom:6px;line-height:1.4;}
+.report-item-sub{font-size:.72rem;color:var(--text-muted);margin-bottom:10px;}
+.report-item-actions{display:flex;gap:8px;}
+.report-item-actions .btn{flex:1;padding:9px 0;font-size:.82rem;}
+
+.toast{
+  position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(14px);
+  padding:12px 22px;border-radius:999px;font-size:.85rem;font-weight:600;max-width:80vw;text-align:center;
+  opacity:0;pointer-events:none;transition:all .3s var(--ease);z-index:40;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ============================================================
+   7. SUSPENSION SCREEN
+   ============================================================ */
+#screen-suspension{
+  align-items:center;justify-content:center;padding:24px;flex-direction:column;
+}
+.susp-card{width:100%;max-width:420px;border-radius:var(--radius-lg);padding:44px 34px;text-align:center;}
+.susp-icon{
+  width:56px;height:56px;border-radius:50%;margin:0 auto 20px;
+  background:var(--danger);
+  display:flex;align-items:center;justify-content:center;
+}
+.susp-icon svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:1.8;}
+.susp-card h2{font-size:1.3rem;font-weight:700;margin-bottom:8px;}
+.susp-reason{font-size:.85rem;color:var(--text-muted);margin-bottom:26px;}
+.countdown{
+  display:flex;gap:10px;justify-content:center;margin-bottom:26px;font-family:var(--font-mono);
+}
+.countdown div{
+  background:var(--surface-2);border-radius:var(--radius-sm);padding:12px 14px;min-width:64px;
+}
+.countdown span{display:block;font-size:1.4rem;font-weight:700;}
+.countdown small{font-size:.62rem;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase;}
+.susp-note{font-size:.74rem;color:var(--text-muted);line-height:1.5;}
+.susp-delete-notice{
+  margin-top:14px;padding:12px 14px;border-radius:var(--radius-sm);
+  background:var(--surface-2);border:1px solid var(--danger);
+  color:var(--danger);font-size:.76rem;line-height:1.5;display:none;
+}
+.dev-reset-link{margin-top:22px;font-size:.72rem;color:var(--text-muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+.dev-reset-link:hover{color:var(--text);}
+
+/* preview-only launcher tucked in the corner, not part of the real product */
+.dev-preview-btn{
+  position:fixed;bottom:18px;right:18px;z-index:15;font-size:.72rem;padding:9px 14px;border-radius:999px;
+  color:var(--text-muted);cursor:pointer;
+}
+
+</style>
+</head>
+<body>
+
+<div class="mesh"><span></span><span></span><span></span></div>
+
+<!-- ============ LANDING ============ -->
+<section class="screen active" id="screen-landing">
+  <div class="brand-row">
+    <div class="brand-mark"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 4 6 4 9s-1.5 6.3-4 9c-2.5-2.7-4-6-4-9s1.5-6.3 4-9z"/></svg></div>
+    <span class="brand-name">Commons</span>
+  </div>
+
+  <p class="hero-eyebrow">for real conversation, out loud</p>
+  <h1 class="hero-title">A place to speak freely —<br><em>and be heard.</em></h1>
+  <p class="hero-sub">Commons is a global room for honest conversation, open to anyone, anywhere. No performance, no algorithm deciding what's worth saying — just people, talking. We hold the room to one standard so it stays worth showing up to.</p>
+
+  <div class="hero-actions">
+    <button class="btn btn-primary" onclick="goToAuth()">Enter the Commons</button>
+    <button class="btn btn-ghost" onclick="openModal('rules')">Read the one rule</button>
+  </div>
+
+  <div class="rule-strip glass"><b>No illegal content, no threats, no harassment.</b>&nbsp;Say anything else.</div>
+</section>
+
+<!-- ============ AUTH ============ -->
+<section class="screen navy-auth" id="screen-auth">
+  <div class="card glass">
+    <p class="card-eyebrow">step 1 of 2</p>
+    <div class="tabs">
+      <button class="tab active" id="tab-signup" onclick="switchTab('signup')">Create nickname</button>
+      <button class="tab" id="tab-login" onclick="switchTab('login')">Log in</button>
+    </div>
+
+    <div id="signup-form">
+      <h2>Pick a nickname</h2>
+      <p class="card-sub">No email, no phone. Just a nickname and a password — yours, permanently.</p>
+
+      <div class="field">
+        <label for="nick-input">Nickname</label>
+        <input id="nick-input" type="text" placeholder="e.g. quietcomet" oninput="validateNickname()" autocomplete="off">
+        <div class="hint neutral" id="nick-hint">At least 3 characters. Letters, numbers, _ and - only.</div>
+      </div>
+      <div class="field">
+        <label for="pw-input">Password</label>
+        <input id="pw-input" type="password" placeholder="Choose a password" oninput="validatePasswords()">
+      </div>
+      <div class="field">
+        <label for="pw-confirm">Confirm password</label>
+        <input id="pw-confirm" type="password" placeholder="Type it again" oninput="validatePasswords()">
+        <div class="hint neutral" id="pw-hint">&nbsp;</div>
+      </div>
+      <button class="btn btn-primary" id="signup-submit" onclick="submitSignup()">Continue</button>
+    </div>
+
+    <div id="login-form" style="display:none;">
+      <h2>Welcome back</h2>
+      <p class="card-sub">Log in with the nickname and password you created.</p>
+      <div class="field">
+        <label for="login-nick">Nickname</label>
+        <input id="login-nick" type="text" placeholder="Your nickname" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="login-pw">Password</label>
+        <input id="login-pw" type="password" placeholder="Your password">
+        <div class="hint neutral" id="login-error">&nbsp;</div>
+      </div>
+      <button class="btn btn-primary" onclick="submitLogin()">Log in</button>
+    </div>
+
+    <p class="switch-line"><a onclick="goTo('landing')">&larr; Back to Commons</a></p>
+  </div>
+</section>
+
+<!-- ============ AGE GATE ============ -->
+<section class="screen navy-auth" id="screen-agegate">
+  <div class="card glass">
+    <div class="age-icon"><svg viewBox="0 0 24 24"><path d="M12 8v5m0 4h.01M10.3 3.86 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.86a2 2 0 0 0-3.4 0z"/></svg></div>
+    <p class="card-eyebrow">step 2 of 2</p>
+    <h2>One quick thing.</h2>
+    <p class="card-sub">Are you 18 years or older? This decides which rooms you can see — it's asked once and can't be changed later.</p>
+    <div class="age-choices">
+      <button class="btn btn-ghost" onclick="setAge(false)">I'm under 18</button>
+      <button class="btn btn-primary" onclick="setAge(true)">I'm 18 or older</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ APP SHELL ============ -->
+<section class="screen" id="screen-app">
+  <div class="topbar glass">
+    <button class="icon-badge menu-toggle" onclick="toggleSidebar()">
+      <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="brand-row">
+      <div class="brand-mark"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 4 6 4 9s-1.5 6.3-4 9c-2.5-2.7-4-6-4-9s1.5-6.3 4-9z"/></svg></div>
+      <span class="brand-name">Commons</span>
+    </div>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="search-input" placeholder="Search rooms..." oninput="filterRooms(this.value)">
+    </div>
+    <div class="topbar-right">
+      <span class="icon-badge" onclick="toggleTheme()" title="Toggle theme" id="theme-toggle-btn">
+        <svg viewBox="0 0 24 24" id="theme-icon"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </span>
+      <div class="user-pill" onclick="openSettings()" style="cursor:pointer;" title="Settings">
+        <span class="user-avatar" id="user-avatar-initial">?</span>
+        <span id="user-nick-label">guest</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <aside class="sidebar glass" id="sidebar">
+      <div>
+        <div class="side-section-label">Official</div>
+        <button class="room-row active" data-room="global" onclick="selectRoom('global')">
+          <span class="rico">🌍</span> Global Lobby <span class="chev"></span>
+        </button>
+
+        <div class="side-section-label" style="margin-top:14px;">Countries</div>
+        <div id="country-list"></div>
+
+        <button class="create-room-btn" onclick="openCreateRoom()">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 5v14M5 12h14"/></svg>
+          Create a room
+        </button>
+      </div>
+
+      <div>
+        <div class="side-section-label">🔥 Trending</div>
+        <div id="trending-list"></div>
+        <p class="no-results-msg" id="no-results">No rooms match your search.</p>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="footer-link" onclick="openModal('rules')">Community rules</button>
+        <button class="footer-link" onclick="openModQueue()">Moderation queue</button>
+      </div>
+    </aside>
+
+    <div class="chat-panel">
+      <div class="chat-header">
+        <span class="rico-lg" id="chat-header-icon">🌍</span>
+        <div>
+          <h3 id="chat-header-title">Global Lobby</h3>
+          <!-- DEMO DATA: this count is hardcoded, not real. Replace with a live count from the backend in Phase 5. -->
+          <p id="chat-header-sub">18,342 here right now · everyone, everywhere</p>
+        </div>
+      </div>
+      <div class="warning-banner" id="warning-banner" style="display:none;">
+        <span id="warning-banner-text"></span>
+        <button onclick="dismissWarningBanner()" title="Dismiss">✕</button>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="chat-input-wrap">
+        <div class="chat-input glass">
+          <input type="text" id="chat-text-input" placeholder="Say something..." onkeydown="if(event.key==='Enter')sendMessage()">
+          <span class="icon-badge send-btn" onclick="sendMessage()">
+            <svg viewBox="0 0 24 24"><path d="m3 11 18-8-8 18-2-8-8-2z"/></svg>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SUSPENSION (real, driven by your actual violation record) ============ -->
+<section class="screen" id="screen-suspension">
+  <div class="susp-card glass">
+    <div class="susp-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+    <h2 id="susp-title">You're temporarily restricted</h2>
+    <p class="susp-reason" id="susp-reason">Community guideline violation</p>
+    <div class="countdown" id="countdown">
+      <div><span id="cd-d">--</span><small>days</small></div>
+      <div><span id="cd-h">--</span><small>hrs</small></div>
+      <div><span id="cd-m">--</span><small>min</small></div>
+      <div><span id="cd-s">--</span><small>sec</small></div>
+    </div>
+    <p class="susp-note" id="susp-note">You'll regain full access automatically when the countdown ends. Repeated violations within a rolling 2-week window escalate further.</p>
+    <p class="susp-delete-notice" id="susp-delete-notice"></p>
+    <p class="dev-reset-link" id="dev-reset-link" onclick="devResetViolations()" style="display:none;">⚙ Dev tool — clear my violation history (local testing only)</p>
+  </div>
+</section>
+
+<!-- ============ ACCOUNT DELETED (real — reached only after the 24h grace period on a permanent ban has elapsed) ============ -->
+<section class="screen" id="screen-deleted">
+  <div class="susp-card glass">
+    <div class="susp-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></div>
+    <h2>This account has been deleted</h2>
+    <p class="susp-reason">24 hours passed after a permanent restriction, as explained at the time</p>
+    <p class="susp-note">The nickname, password, violation history, and blocked list for this account have all been permanently removed. This can't be undone — but the nickname is now free to sign up again.</p>
+    <button class="btn btn-primary" style="margin-top:22px;" onclick="goTo('landing')">Back to Commons</button>
+  </div>
+</section>
+
+<!-- ============ MODAL: community rules ============ -->
+<div class="modal-overlay" id="modal-rules">
+  <div class="modal glass">
+    <h3>Community rules</h3>
+    <p class="modal-sub">One floor. Everything above it is your call.</p>
+
+    <div class="rule-block">
+      <h4>🛑 The one hard rule</h4>
+      <p>Illegal content, credible threats, doxxing, and harassment that crosses the line are never allowed, in any room. This is the only thing that isn't up for debate.</p>
+    </div>
+
+    <div class="rule-block">
+      <h4>⚖️ How enforcement works</h4>
+      <p>Everything else is loose by default — blunt opinions, dark humor, disagreement, and edgy takes are all fine. For threats and harassment specifically, violations escalate if they repeat within a rolling 2-week window:</p>
+      <div class="escalation-steps">
+        <div class="esc-step"><span class="esc-num">1</span> Warning</div>
+        <div class="esc-step"><span class="esc-num">2</span> 1 week suspension</div>
+        <div class="esc-step"><span class="esc-num">3</span> 1 month suspension</div>
+        <div class="esc-step"><span class="esc-num">4</span> Permanent restriction</div>
+      </div>
+    </div>
+
+    <button class="btn btn-ghost modal-close" onclick="closeModal('rules')">Close</button>
+  </div>
+</div>
+
+<!-- ============ MODAL: create room ============ -->
+<div class="modal-overlay" id="modal-createroom">
+  <div class="modal glass">
+    <h3>Start a room</h3>
+    <p class="modal-sub">Anyone can open one. Give it a name and it's live.</p>
+
+    <div class="field">
+      <label for="room-name-input">Room name</label>
+      <input id="room-name-input" type="text" placeholder="e.g. late night thoughts" oninput="validateRoomName()" autocomplete="off">
+      <div class="hint neutral" id="room-name-hint">3+ characters, any words — we'll turn it into a room tag.</div>
+    </div>
+    <div class="field">
+      <label for="room-desc-input">What's it about? (optional)</label>
+      <input id="room-desc-input" type="text" placeholder="A one-line description">
+    </div>
+
+    <button class="btn btn-primary" style="width:100%;" onclick="submitCreateRoom()">Create room</button>
+    <button class="btn btn-ghost modal-close" onclick="closeModal('createroom')">Cancel</button>
+  </div>
+</div>
+
+<!-- ============ MODAL: report a message ============ -->
+<div class="modal-overlay" id="modal-report">
+  <div class="modal glass">
+    <h3>Report this message</h3>
+    <p class="modal-sub" id="report-preview">—</p>
+
+    <div class="field">
+      <label for="report-reason">Reason</label>
+      <select id="report-reason">
+        <option value="harassment">Harassment</option>
+        <option value="threats">Threats</option>
+        <option value="spam">Spam</option>
+        <option value="other">Something else</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="report-note">Add detail (optional)</label>
+      <input id="report-note" type="text" placeholder="Anything that helps a reviewer" autocomplete="off">
+    </div>
+
+    <p class="modal-sub" style="margin-bottom:4px;">Nobody reviews this until you submit it — messages aren't scanned automatically.</p>
+    <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="submitReport()">Submit report</button>
+    <button class="btn btn-ghost modal-close" onclick="closeModal('report')">Cancel</button>
+  </div>
+</div>
+
+<!-- ============ MODAL: moderation queue ============ -->
+<div class="modal-overlay" id="modal-modqueue">
+  <div class="modal glass" style="max-width:560px;">
+    <h3>Moderation queue</h3>
+    <p class="modal-sub">Reports only get reviewed after someone flags a message — nothing here is read automatically. This queue is local to your own account for the prototype; a real deployment would restrict it to actual moderators.</p>
+    <div id="modqueue-list"></div>
+    <button class="btn btn-ghost modal-close" onclick="closeModal('modqueue')" style="margin-top:6px;">Close</button>
+  </div>
+</div>
+
+<!-- ============ MODAL: settings ============ -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal glass">
+    <h3>Settings</h3>
+    <p class="modal-sub">Signed in as <strong id="settings-nick-label">—</strong></p>
+
+    <div class="field">
+      <label for="settings-current-pw">Current password</label>
+      <input id="settings-current-pw" type="password" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="settings-new-pw">New password</label>
+      <input id="settings-new-pw" type="password" oninput="validateSettingsPasswords()" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="settings-new-pw-confirm">Confirm new password</label>
+      <input id="settings-new-pw-confirm" type="password" oninput="validateSettingsPasswords()" autocomplete="off">
+      <div class="hint neutral" id="settings-pw-hint">&nbsp;</div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;" onclick="submitChangePassword()">Update password</button>
+
+    <div class="side-section-label" style="margin-top:22px;">Violation history</div>
+    <div id="settings-violations-list"></div>
+
+    <div class="side-section-label" style="margin-top:22px;">Blocked users</div>
+    <div id="settings-blocked-list"></div>
+
+    <button class="btn btn-ghost" style="width:100%;margin-top:18px;" onclick="logOut()">Log out</button>
+    <button class="btn btn-ghost modal-close" onclick="closeModal('settings')">Close</button>
+  </div>
+</div>
+
+<div class="toast glass" id="toast"></div>
+
+<button class="dev-preview-btn glass" id="restart-preview-btn" onclick="goTo('landing')" title="Restart the walkthrough" style="display:none;">↺ restart preview</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+/* ============================================================
+   BACKEND CONFIG — point this at your deployed backend. The
+   default assumes you're running the backend locally per its
+   README (npm start), so this works out of the box when you
+   open this file while testing in Chrome.
+   ============================================================ */
+const API_BASE = 'http://localhost:8080';
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {
+  theme: 'light',
+  nickname: '',
+  isAdult: null,
+  currentRoom: { type:'global', id:'global', name:'Global Lobby', icon:'🌍', sub:'' },
+  blockedNicks: new Set(),
+};
+let pendingReportIndex = null;
+let pendingWarning = null;
+let pendingSignupPassword = null;
+let socket = null;
+
+const roomData = {
+  countries: [
+    { name:'India', flag:'🇮🇳', regions:['Telangana','Maharashtra','Delhi NCR','Tamil Nadu','Karnataka'] },
+    { name:'United States', flag:'🇺🇸', regions:['California','Texas','New York','Florida'] },
+    { name:'Brazil', flag:'🇧🇷', regions:['São Paulo','Rio de Janeiro','Minas Gerais'] },
+    { name:'Nigeria', flag:'🇳🇬', regions:['Lagos','Abuja','Kano'] },
+    { name:'Germany', flag:'🇩🇪', regions:['Bavaria','Berlin','Hamburg'] },
+  ],
+  trending: [], // loaded from the backend — no more seed data
+};
+let messages = [];
+
+function slugify(raw){
+  return raw
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFEFF]/g,'')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'');
+}
+function normalizeNick(raw){
+  return raw.normalize('NFKC').replace(/[\u200B-\u200D\uFEFF]/g,'').trim().replace(/\s+/g,'');
+}
+
+/* ============================================================
+   SESSION — the JWT lives in memory always, and in
+   localStorage too when available so a page refresh keeps you
+   logged in. Falls back to memory-only if localStorage is
+   blocked (e.g. a sandboxed preview) — never throws either way.
+   ============================================================ */
+function safeGet(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
+function safeSet(key, val){ try{ localStorage.setItem(key, val); }catch(e){} }
+function safeRemove(key){ try{ localStorage.removeItem(key); }catch(e){} }
+
+let authToken = safeGet('commons_token') || null;
+
+/* ============================================================
+   API — every call goes through this. Network failures and
+   non-2xx responses both raise a clean, human-readable error
+   the UI can show, instead of throwing a raw exception.
+   ============================================================ */
+async function apiFetch(path, options={}){
+  const headers = Object.assign({ 'Content-Type':'application/json' }, options.headers||{});
+  if(authToken) headers['Authorization'] = 'Bearer ' + authToken;
+  let res;
+  try{
+    res = await fetch(API_BASE + path, Object.assign({}, options, { headers }));
+  }catch(err){
+    throw new Error(`Could not reach the backend at ${API_BASE}. Is it running?`);
+  }
+  let data = null;
+  try{ data = await res.json(); }catch(e){ /* empty body is fine */ }
+  if(!res.ok){
+    throw new Error((data && data.error) || `Request failed (${res.status}).`);
+  }
+  return data;
+}
+
+/* ============================================================
+   SCREEN NAVIGATION
+   ============================================================ */
+function goTo(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.modal-overlay.active').forEach(m=>m.classList.remove('active'));
+  window.scrollTo(0,0);
+}
+function goToAuth(){
+  goTo('auth');
+}
+function dismissWarningBanner(){
+  document.getElementById('warning-banner').style.display = 'none';
+}
+
+/* ============================================================
+   AUTH TABS
+   ============================================================ */
+function switchTab(tab){
+  document.getElementById('tab-signup').classList.toggle('active', tab==='signup');
+  document.getElementById('tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('signup-form').style.display = tab==='signup' ? 'block' : 'none';
+  document.getElementById('login-form').style.display = tab==='login' ? 'block' : 'none';
+}
+
+/* ============================================================
+   NICKNAME / PASSWORD — client-side checks format only now.
+   Uniqueness is the server's job (it responds 409 if taken),
+   since a real backend shouldn't expose an account-listing
+   endpoint just for a client-side pre-check.
+   ============================================================ */
+function validateNickname(){
+  const raw = document.getElementById('nick-input').value;
+  const hint = document.getElementById('nick-hint');
+  const normalized = normalizeNick(raw);
+
+  if(normalized.length===0){
+    hint.textContent = 'At least 3 characters. Letters, numbers, _ and - only.';
+    hint.className = 'hint neutral';
+    return false;
+  }
+  if(!/^[a-zA-Z0-9_-]+$/.test(normalized)){
+    hint.textContent = 'Only letters, numbers, _ and - are allowed — no spaces or special fonts.';
+    hint.className = 'hint bad';
+    return false;
+  }
+  if(normalized.length < 3){
+    hint.textContent = 'Too short — minimum 3 characters.';
+    hint.className = 'hint bad';
+    return false;
+  }
+  hint.textContent = 'Looks good — availability is confirmed when you continue';
+  hint.className = 'hint ok';
+  return true;
+}
+function validatePasswords(){
+  const pw = document.getElementById('pw-input').value;
+  const cpw = document.getElementById('pw-confirm').value;
+  const hint = document.getElementById('pw-hint');
+  if(cpw.length===0){ hint.textContent = '\u00A0'; hint.className='hint neutral'; return false; }
+  if(pw !== cpw){
+    hint.textContent = 'Passwords don\u2019t match.';
+    hint.className = 'hint bad';
+    return false;
+  }
+  if(pw.length < 6){
+    hint.textContent = 'Use at least 6 characters.';
+    hint.className = 'hint bad';
+    return false;
+  }
+  hint.textContent = 'Passwords match';
+  hint.className = 'hint ok';
+  return true;
+}
+function submitSignup(){
+  const nickOk = validateNickname();
+  const pwVal = document.getElementById('pw-input').value;
+  const pwOk = validatePasswords();
+  if(!nickOk){ document.getElementById('nick-input').focus(); return; }
+  if(!pwOk){ document.getElementById('pw-confirm').focus(); return; }
+
+  state.nickname = normalizeNick(document.getElementById('nick-input').value).toLowerCase();
+  pendingSignupPassword = pwVal;
+  goTo('agegate');
+}
+async function submitLogin(){
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '\u00A0';
+  errEl.className = 'hint neutral';
+
+  const nick = normalizeNick(document.getElementById('login-nick').value).toLowerCase();
+  const pw = document.getElementById('login-pw').value;
+  if(nick.length===0){ document.getElementById('login-nick').focus(); return; }
+  if(pw.length===0){
+    errEl.textContent = 'Enter your password.';
+    errEl.className = 'hint bad';
+    document.getElementById('login-pw').focus();
+    return;
+  }
+
+  try{
+    const data = await apiFetch('/api/auth/login', { method:'POST', body: JSON.stringify({ nickname:nick, password:pw }) });
+    authToken = data.token;
+    safeSet('commons_token', authToken);
+    safeSet('commons_nickname', data.nickname);
+    state.nickname = data.nickname;
+    state.isAdult = data.isAdult;
+    await enterApp();
+  }catch(err){
+    errEl.textContent = err.message;
+    errEl.className = 'hint bad';
+    document.getElementById('login-pw').value = '';
+    document.getElementById('login-pw').focus();
+  }
+}
+
+/* ============================================================
+   AGE GATE
+   ============================================================ */
+async function setAge(isAdult){
+  state.isAdult = isAdult;
+  if(pendingSignupPassword !== null){
+    try{
+      const data = await apiFetch('/api/auth/signup', {
+        method:'POST',
+        body: JSON.stringify({ nickname: state.nickname, password: pendingSignupPassword, isAdult })
+      });
+      authToken = data.token;
+      safeSet('commons_token', authToken);
+      safeSet('commons_nickname', data.nickname);
+      state.nickname = data.nickname;
+      pendingSignupPassword = null;
+      await enterApp();
+    }catch(err){
+      pendingSignupPassword = null;
+      goTo('auth');
+      switchTab('signup');
+      const hint = document.getElementById('nick-hint');
+      hint.textContent = err.message;
+      hint.className = 'hint bad';
+    }
+    return;
+  }
+  await enterApp();
+}
+
+/* ============================================================
+   SUSPENSION / ACCOUNT STATUS — the server is the source of
+   truth. This one call also runs the real 24h post-permanent-
+   ban deletion check.
+   ============================================================ */
+async function checkOwnSuspension(){
+  try{
+    const data = await apiFetch('/api/account/status');
+    if(data.deleted){
+      authToken = null;
+      safeRemove('commons_token');
+      safeRemove('commons_nickname');
+      state.nickname = '';
+      state.isAdult = null;
+      pendingWarning = null;
+      goTo('deleted');
+      return true;
+    }
+    const status = data.status;
+    if(status.suspended){
+      showSuspensionScreen(status, data.deleteAt);
+      return true;
+    }
+    pendingWarning = status.stage===1 ? status : null;
+    return false;
+  }catch(err){
+    // if the backend is unreachable, don't lock the user out of a screen
+    // that just says so — let enterApp's own error handling take over.
+    throw err;
+  }
+}
+function showSuspensionScreen(status, deleteAt){
+  document.getElementById('susp-reason').textContent = status.reason || labelToReason(status);
+  const countdownEl = document.getElementById('countdown');
+  const noteEl = document.getElementById('susp-note');
+  const deleteNoticeEl = document.getElementById('susp-delete-notice');
+  if(status.permanent){
+    countdownEl.style.display = 'none';
+    noteEl.textContent = 'This restriction does not expire. It applies after repeated violations within a rolling 2-week window.';
+    const d = new Date(deleteAt);
+    const formatted = d.toLocaleString([], { dateStyle:'medium', timeStyle:'short' });
+    deleteNoticeEl.textContent = `This account and all its data — nickname, password, violation history, blocked list — will be permanently deleted on ${formatted}, 24 hours after this restriction began. This can\u2019t be undone.`;
+    deleteNoticeEl.style.display = 'block';
+  } else {
+    countdownEl.style.display = 'flex';
+    noteEl.textContent = 'You\u2019ll regain full access automatically when the countdown ends. Repeated violations within a rolling 2-week window escalate further.';
+    deleteNoticeEl.style.display = 'none';
+    startCountdown(status.until);
+  }
+  goTo('suspension');
+}
+function labelToReason(status){
+  return status.label || 'Community guideline violation';
+}
+async function devResetViolations(){
+  // local-testing convenience only (see enterApp's localhost gate) —
+  // there's no equivalent in the real backend on purpose.
+  goTo('landing');
+}
+
+/* ============================================================
+   ENTER APP
+   ============================================================ */
+async function enterApp(){
+  document.getElementById('user-nick-label').textContent = state.nickname || 'guest';
+  document.getElementById('user-avatar-initial').textContent = (state.nickname[0]||'?').toUpperCase();
+
+  try{
+    const suspended = await checkOwnSuspension();
+    if(suspended) return;
+  }catch(err){
+    showToast(err.message);
+    goTo('auth');
+    return;
+  }
+
+  try{
+    const blockedData = await apiFetch('/api/account/blocked');
+    state.blockedNicks = new Set((blockedData.blocked||[]).map(n=>n.toLowerCase()));
+  }catch(err){ state.blockedNicks = new Set(); }
+
+  connectSocket();
+  await loadRoomsFromServer();
+  renderRoomTree();
+
+  const banner = document.getElementById('warning-banner');
+  if(pendingWarning){
+    document.getElementById('warning-banner-text').textContent =
+      'Warning: your account has one violation on record. One more within 14 days triggers a suspension.';
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
+
+  // local-only dev tools, gated so they never show once this is really deployed
+  const isLocal = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  document.getElementById('restart-preview-btn').style.display = isLocal ? 'block' : 'none';
+  document.getElementById('dev-reset-link').style.display = 'none'; // no server-side equivalent; kept hidden
+
+  await selectRoom('global', 'global', { name:'Global Lobby', icon:'🌍', sub:'' });
+  goTo('app');
+}
+
+/* ============================================================
+   SOCKET.IO — real-time message delivery
+   ============================================================ */
+function connectSocket(){
+  if(socket){ socket.disconnect(); }
+  socket = io(API_BASE, { auth: { token: authToken } });
+  socket.on('new_message', (payload)=>{
+    if(payload.roomId === state.currentRoom.id){
+      messages.push(payload.message);
+      renderMessages();
+    }
+  });
+  socket.on('connect_error', (err)=>{
+    showToast('Real-time connection failed: ' + (err.message||'unknown error'));
+  });
+}
+
+/* ============================================================
+   ROOMS
+   ============================================================ */
+async function loadRoomsFromServer(){
+  try{
+    const data = await apiFetch('/api/rooms');
+    state._allRooms = data.rooms || [];
+    roomData.trending = state._allRooms
+      .filter(r=>r.type==='user')
+      .map(r=>({ id:r.id, name:r.name, members:null }));
+  }catch(err){
+    showToast(err.message);
+    roomData.trending = [];
+  }
+}
+function renderRoomTree(){
+  const countryList = document.getElementById('country-list');
+  countryList.innerHTML = '';
+  roomData.countries.forEach((c)=>{
+    const wrap = document.createElement('div');
+    wrap.className = 'country-wrap';
+    wrap.dataset.name = c.name.toLowerCase();
+    const row = document.createElement('button');
+    row.className = 'room-row';
+    row.innerHTML = `<span class="rico">${c.flag}</span> ${c.name}
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>`;
+    row.onclick = ()=>{
+      row.classList.toggle('expanded');
+      regionBox.classList.toggle('open');
+    };
+    const regionBox = document.createElement('div');
+    regionBox.className = 'region-list';
+    c.regions.forEach(r=>{
+      const roomId = slugify(`${r}-${c.name}`);
+      const rBtn = document.createElement('button');
+      rBtn.className = 'region-row';
+      rBtn.textContent = r;
+      rBtn.dataset.name = r.toLowerCase();
+      rBtn.onclick = (e)=>{
+        e.stopPropagation();
+        document.querySelectorAll('.region-row, .room-row').forEach(el=>el.classList.remove('active'));
+        rBtn.classList.add('active');
+        selectRoom('region', roomId, { name:`${r}, ${c.name}`, icon:c.flag, sub:`Regional room · ${c.name}` });
+      };
+      regionBox.appendChild(rBtn);
+    });
+    wrap.appendChild(row);
+    wrap.appendChild(regionBox);
+    countryList.appendChild(wrap);
+  });
+  renderTrendingList();
+}
+function renderTrendingList(){
+  const trendingList = document.getElementById('trending-list');
+  trendingList.innerHTML = '';
+  roomData.trending.forEach(t=>{
+    const btn = document.createElement('button');
+    btn.className = 'trending-row';
+    btn.dataset.name = t.name.toLowerCase();
+    btn.innerHTML = `<span>#${t.name}</span><span class="count"></span>`;
+    btn.onclick = ()=>{
+      document.querySelectorAll('.region-row, .room-row').forEach(el=>el.classList.remove('active'));
+      selectRoom('trending', t.id, { name:t.name, icon:'#', sub:'User-created room' });
+    };
+    trendingList.appendChild(btn);
+  });
+}
+async function selectRoom(type, roomId, custom){
+  const previousRoomId = state.currentRoom ? state.currentRoom.id : null;
+
+  if(type==='global'){
+    document.querySelectorAll('.region-row, .room-row').forEach(r=>r.classList.remove('active'));
+    const globalBtn = document.querySelector('.room-row[data-room="global"]');
+    if(globalBtn) globalBtn.classList.add('active');
+    state.currentRoom = { type:'global', id:'global', name:'Global Lobby', icon:'🌍', sub:'' };
+  } else {
+    state.currentRoom = { type, id:roomId, ...custom };
+  }
+
+  document.getElementById('chat-header-icon').textContent = state.currentRoom.icon;
+  document.getElementById('chat-header-title').textContent = state.currentRoom.name;
+  document.getElementById('chat-header-sub').textContent = state.currentRoom.sub;
+
+  if(socket){
+    if(previousRoomId) socket.emit('leave_room', previousRoomId);
+    socket.emit('join_room', state.currentRoom.id);
+  }
+
+  try{
+    const data = await apiFetch(`/api/messages/${encodeURIComponent(state.currentRoom.id)}`);
+    if(state.currentRoom.id !== roomId && type !== 'global') return; // switched again mid-flight
+    messages = data.messages || [];
+    renderMessages();
+  }catch(err){
+    messages = [];
+    renderMessages();
+    showToast(err.message);
+  }
+
+  if(window.innerWidth<=860) toggleSidebar(false);
+}
+
+/* ============================================================
+   CREATE ROOM
+   ============================================================ */
+function openCreateRoom(){
+  document.getElementById('room-name-input').value = '';
+  document.getElementById('room-desc-input').value = '';
+  const hint = document.getElementById('room-name-hint');
+  hint.textContent = '3+ characters, any words — we\u2019ll turn it into a room tag.';
+  hint.className = 'hint neutral';
+  openModal('createroom');
+}
+function validateRoomName(){
+  const raw = document.getElementById('room-name-input').value;
+  const hint = document.getElementById('room-name-hint');
+  const slug = slugify(raw);
+  if(slug.length===0){
+    hint.textContent = '3+ characters, any words — we\u2019ll turn it into a room tag.';
+    hint.className = 'hint neutral';
+    return null;
+  }
+  if(slug.length < 3){
+    hint.textContent = 'Too short — minimum 3 characters once simplified.';
+    hint.className = 'hint bad';
+    return null;
+  }
+  hint.textContent = `Will appear as #${slug}`;
+  hint.className = 'hint ok';
+  return slug;
+}
+async function submitCreateRoom(){
+  const raw = document.getElementById('room-name-input').value.trim();
+  const slug = validateRoomName();
+  if(!slug){ document.getElementById('room-name-input').focus(); return; }
+
+  try{
+    const room = await apiFetch('/api/rooms', { method:'POST', body: JSON.stringify({ name: raw }) });
+    roomData.trending.unshift({ id:room.id, name:room.name, members:null });
+    renderTrendingList();
+    closeModal('createroom');
+    document.querySelectorAll('.region-row, .room-row').forEach(el=>el.classList.remove('active'));
+    await selectRoom('trending', room.id, { name:room.name, icon:'#', sub:'User-created room · you started this one' });
+  }catch(err){
+    const hint = document.getElementById('room-name-hint');
+    hint.textContent = err.message;
+    hint.className = 'hint bad';
+  }
+}
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+function filterRooms(query){
+  const q = query.trim().toLowerCase();
+  let anyMatch = false;
+
+  const globalRow = document.querySelector('.room-row[data-room="global"]');
+  if(globalRow){
+    const match = q==='' || 'global lobby'.includes(q);
+    globalRow.style.display = match ? '' : 'none';
+    if(match) anyMatch = true;
+  }
+
+  document.querySelectorAll('.country-wrap').forEach(wrap=>{
+    const countryMatches = q==='' || wrap.dataset.name.includes(q);
+    let anyRegionMatch = false;
+    wrap.querySelectorAll('.region-row').forEach(rBtn=>{
+      const regionMatch = countryMatches || rBtn.dataset.name.includes(q);
+      rBtn.style.display = regionMatch ? '' : 'none';
+      if(regionMatch) anyRegionMatch = true;
+    });
+    const showCountry = countryMatches || anyRegionMatch;
+    wrap.style.display = showCountry ? '' : 'none';
+    if(showCountry){
+      anyMatch = true;
+      if(q !== '' && !countryMatches && anyRegionMatch){
+        wrap.querySelector('.room-row').classList.add('expanded');
+        wrap.querySelector('.region-list').classList.add('open');
+      }
+    }
+  });
+
+  document.querySelectorAll('.trending-row').forEach(btn=>{
+    const match = q==='' || btn.dataset.name.includes(q);
+    btn.style.display = match ? '' : 'none';
+    if(match) anyMatch = true;
+  });
+
+  document.getElementById('no-results').style.display = anyMatch ? 'none' : 'block';
+}
+
+/* ============================================================
+   MESSAGES
+   ============================================================ */
+const avatarColors = ['#111111','#3A3A3A','#6B6B6B'];
+function colorFor(nick){
+  let sum=0; for(const c of nick) sum += c.charCodeAt(0);
+  return avatarColors[sum % avatarColors.length];
+}
+function renderMessages(){
+  const box = document.getElementById('messages');
+  box.innerHTML = '';
+  messages.forEach((m, idx)=>{
+    if(state.blockedNicks.has(m.nickname.toLowerCase())) return;
+    const row = document.createElement('div');
+    row.className = 'msg';
+    row.innerHTML = `
+      <div class="msg-avatar" style="background:${colorFor(m.nickname)}">${m.nickname[0].toUpperCase()}</div>
+      <div class="msg-body">
+        <div class="msg-meta">
+          <span class="msg-nick"></span>
+          <span class="msg-time"></span>
+          <button class="msg-action" type="button" title="Report this message">⚑ report</button>
+          <button class="msg-action" type="button" title="Block this user">⊘ block</button>
+        </div>
+        <div class="msg-text"></div>
+      </div>`;
+    row.querySelector('.msg-nick').textContent = m.nickname;
+    row.querySelector('.msg-time').textContent = new Date(m.created_at).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
+    row.querySelector('.msg-text').textContent = m.text;
+    const [reportBtn, blockBtn] = row.querySelectorAll('.msg-action');
+    reportBtn.addEventListener('click', ()=>openReportModal(idx));
+    blockBtn.addEventListener('click', ()=>blockUser(idx));
+    box.appendChild(row);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+function sendMessage(){
+  const input = document.getElementById('chat-text-input');
+  const text = input.value.trim();
+  if(!text || !socket) return;
+  socket.emit('send_message', { roomId: state.currentRoom.id, text }, (ack)=>{
+    if(ack && ack.error) showToast(ack.error);
+  });
+  input.value = '';
+}
+
+/* ============================================================
+   REPORT A MESSAGE
+   ============================================================ */
+function openReportModal(idx){
+  pendingReportIndex = idx;
+  const m = messages[idx];
+  const preview = m.text.length > 80 ? m.text.slice(0,80) + '\u2026' : m.text;
+  document.getElementById('report-preview').textContent = `Reporting ${m.nickname}: "${preview}"`;
+  document.getElementById('report-reason').value = 'harassment';
+  document.getElementById('report-note').value = '';
+  openModal('report');
+}
+async function submitReport(){
+  if(pendingReportIndex===null) return;
+  const m = messages[pendingReportIndex];
+  const reason = document.getElementById('report-reason').value;
+  const note = document.getElementById('report-note').value.trim();
+
+  try{
+    await apiFetch('/api/reports', {
+      method:'POST',
+      body: JSON.stringify({
+        roomId: state.currentRoom.id, roomName: state.currentRoom.name,
+        nickname: m.nickname, text: m.text, reason, note
+      })
+    });
+    pendingReportIndex = null;
+    closeModal('report');
+    showToast('Report submitted — a reviewer will take a look.');
+  }catch(err){
+    showToast(err.message);
+  }
+}
+
+async function blockUser(idx){
+  const m = messages[idx];
+  const target = m.nickname.toLowerCase();
+  if(!state.nickname) return;
+  if(target === state.nickname.toLowerCase()){
+    showToast("You can't block yourself.");
+    return;
+  }
+  if(state.blockedNicks.has(target)){
+    showToast(`${m.nickname} is already blocked.`);
+    return;
+  }
+  try{
+    await apiFetch('/api/account/block', { method:'POST', body: JSON.stringify({ nickname: target }) });
+    state.blockedNicks.add(target);
+    renderMessages();
+    showToast(`Blocked ${m.nickname}. You won't see their messages anywhere.`);
+  }catch(err){
+    showToast(err.message);
+  }
+}
+
+/* ============================================================
+   MODERATION QUEUE
+   ============================================================ */
+function reasonLabel(reason){
+  return { harassment:'Harassment', threats:'Threats', spam:'Spam', other:'Other' }[reason] || 'Other';
+}
+function timeAgo(iso){
+  const ts = new Date(iso).getTime();
+  const mins = Math.floor((Date.now()-ts)/60000);
+  if(mins < 1) return 'just now';
+  if(mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins/60);
+  if(hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs/24)}d ago`;
+}
+async function openModQueue(){
+  await renderModQueue();
+  openModal('modqueue');
+}
+async function renderModQueue(){
+  const list = document.getElementById('modqueue-list');
+  list.innerHTML = '';
+  let pending = [];
+  try{
+    const data = await apiFetch('/api/reports/queue');
+    pending = data.reports || [];
+  }catch(err){
+    const p = document.createElement('p');
+    p.className = 'modal-sub';
+    p.textContent = err.message;
+    list.appendChild(p);
+    return;
+  }
+
+  if(pending.length===0){
+    const p = document.createElement('p');
+    p.className = 'modal-sub';
+    p.style.marginTop = '4px';
+    p.textContent = 'No pending reports right now.';
+    list.appendChild(p);
+    return;
+  }
+
+  pending.forEach(r=>{
+    const item = document.createElement('div');
+    item.className = 'report-item';
+    item.innerHTML = `
+      <div class="report-item-meta">
+        <span class="report-item-nick"></span>
+        <span class="report-item-reason"></span>
+      </div>
+      <div class="report-item-text"></div>
+      <div class="report-item-sub"></div>
+      <div class="report-item-actions">
+        <button class="btn btn-ghost report-dismiss" type="button">Dismiss</button>
+        <button class="btn btn-primary report-act" type="button">Take action</button>
+      </div>`;
+    item.querySelector('.report-item-nick').textContent = r.reported_nickname;
+    item.querySelector('.report-item-reason').textContent = reasonLabel(r.reason);
+    item.querySelector('.report-item-text').textContent = `"${r.message_text}"`;
+    item.querySelector('.report-item-sub').textContent =
+      `Reported in ${r.room_name || r.room_id}${r.note ? ' · ' + r.note : ''} · ${timeAgo(r.created_at)}`;
+    item.querySelector('.report-dismiss').addEventListener('click', ()=>resolveReport(r.id,'dismissed', r.reported_nickname));
+    item.querySelector('.report-act').addEventListener('click', ()=>resolveReport(r.id,'actioned', r.reported_nickname));
+    list.appendChild(item);
+  });
+}
+async function resolveReport(id, outcome, reportedNickname){
+  try{
+    const data = await apiFetch(`/api/reports/${id}/resolve`, { method:'POST', body: JSON.stringify({ outcome }) });
+    if(outcome==='actioned' && data.status){
+      showToast(`${reportedNickname}: ${data.status.label} applied.`);
+      if(state.nickname && state.nickname.toLowerCase()===reportedNickname.toLowerCase()){
+        const stillSuspended = await checkOwnSuspension();
+        if(stillSuspended) return;
+      }
+    } else {
+      showToast('Report dismissed.');
+    }
+  }catch(err){
+    showToast(err.message);
+  }
+  await renderModQueue();
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+async function openSettings(){
+  document.getElementById('settings-nick-label').textContent = state.nickname || 'guest';
+  document.getElementById('settings-current-pw').value = '';
+  document.getElementById('settings-new-pw').value = '';
+  document.getElementById('settings-new-pw-confirm').value = '';
+  document.getElementById('settings-pw-hint').textContent = '\u00A0';
+  document.getElementById('settings-pw-hint').className = 'hint neutral';
+  await renderViolationHistory();
+  await renderBlockedList();
+  openModal('settings');
+}
+function validateSettingsPasswords(){
+  const pw = document.getElementById('settings-new-pw').value;
+  const cpw = document.getElementById('settings-new-pw-confirm').value;
+  const hint = document.getElementById('settings-pw-hint');
+  if(cpw.length===0){ hint.textContent = '\u00A0'; hint.className = 'hint neutral'; return false; }
+  if(pw !== cpw){ hint.textContent = 'Passwords don\u2019t match.'; hint.className = 'hint bad'; return false; }
+  if(pw.length < 6){ hint.textContent = 'Use at least 6 characters.'; hint.className = 'hint bad'; return false; }
+  hint.textContent = 'Passwords match';
+  hint.className = 'hint ok';
+  return true;
+}
+async function submitChangePassword(){
+  const hint = document.getElementById('settings-pw-hint');
+  const ok = validateSettingsPasswords();
+  if(!ok){ document.getElementById('settings-new-pw-confirm').focus(); return; }
+
+  try{
+    await apiFetch('/api/account/change-password', {
+      method:'POST',
+      body: JSON.stringify({
+        currentPassword: document.getElementById('settings-current-pw').value,
+        newPassword: document.getElementById('settings-new-pw').value
+      })
+    });
+    document.getElementById('settings-current-pw').value = '';
+    document.getElementById('settings-new-pw').value = '';
+    document.getElementById('settings-new-pw-confirm').value = '';
+    showToast('Password updated.');
+  }catch(err){
+    hint.textContent = err.message;
+    hint.className = 'hint bad';
+  }
+}
+async function renderViolationHistory(){
+  const list = document.getElementById('settings-violations-list');
+  list.innerHTML = '';
+  let violations = [];
+  try{
+    const data = await apiFetch('/api/account/violations');
+    violations = data.violations || [];
+  }catch(err){
+    const p = document.createElement('p');
+    p.className = 'modal-sub';
+    p.textContent = err.message;
+    list.appendChild(p);
+    return;
+  }
+  if(violations.length===0){
+    const p = document.createElement('p');
+    p.className = 'modal-sub';
+    p.textContent = 'No violations on record.';
+    list.appendChild(p);
+    return;
+  }
+  violations.forEach((ts, i)=>{
+    const row = document.createElement('div');
+    row.className = 'report-item';
+    row.innerHTML = '<div class="report-item-text"></div>';
+    const date = new Date(ts).toLocaleString([], { dateStyle:'medium', timeStyle:'short' });
+    row.querySelector('.report-item-text').textContent = `Violation #${violations.length - i} — ${date}`;
+    list.appendChild(row);
+  });
+}
+async function renderBlockedList(){
+  const list = document.getElementById('settings-blocked-list');
+  list.innerHTML = '';
+  const blocked = [...state.blockedNicks].sort();
+  if(blocked.length===0){
+    const p = document.createElement('p');
+    p.className = 'modal-sub';
+    p.style.marginTop = '4px';
+    p.textContent = "You haven't blocked anyone.";
+    list.appendChild(p);
+    return;
+  }
+  blocked.forEach(nick=>{
+    const row = document.createElement('div');
+    row.className = 'report-item';
+    row.innerHTML = `
+      <div class="report-item-meta"><span class="report-item-nick"></span></div>
+      <button class="btn btn-ghost" type="button" style="width:100%;padding:8px 0;font-size:.8rem;">Unblock</button>`;
+    row.querySelector('.report-item-nick').textContent = nick;
+    row.querySelector('button').addEventListener('click', ()=>unblockUser(nick));
+    list.appendChild(row);
+  });
+}
+async function unblockUser(nick){
+  try{
+    await apiFetch('/api/account/unblock', { method:'POST', body: JSON.stringify({ nickname: nick }) });
+    state.blockedNicks.delete(nick);
+    renderMessages();
+    await renderBlockedList();
+    showToast(`Unblocked ${nick}.`);
+  }catch(err){
+    showToast(err.message);
+  }
+}
+function logOut(){
+  closeModal('settings');
+  if(socket){ socket.disconnect(); socket = null; }
+  authToken = null;
+  safeRemove('commons_token');
+  safeRemove('commons_nickname');
+  state.nickname = '';
+  state.isAdult = null;
+  pendingWarning = null;
+  state.blockedNicks = new Set();
+  document.getElementById('login-nick').value = '';
+  document.getElementById('login-pw').value = '';
+  document.getElementById('login-error').textContent = '\u00A0';
+  document.getElementById('login-error').className = 'hint neutral';
+  switchTab('login');
+  goTo('auth');
+}
+
+/* ============================================================
+   THEME TOGGLE — accent hue stays fixed, only surfaces flip
+   ============================================================ */
+function toggleTheme(){
+  state.theme = state.theme==='light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', state.theme);
+  const icon = document.getElementById('theme-icon');
+  icon.innerHTML = state.theme==='dark'
+    ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+    : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+}
+
+/* ============================================================
+   MOBILE SIDEBAR
+   ============================================================ */
+function toggleSidebar(force){
+  const sb = document.getElementById('sidebar');
+  if(typeof force === 'boolean'){ sb.classList.toggle('open', force); }
+  else sb.classList.toggle('open');
+}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+function openModal(name){ document.getElementById('modal-'+name).classList.add('active'); }
+function closeModal(name){ document.getElementById('modal-'+name).classList.remove('active'); }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+let toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+/* ============================================================
+   SUSPENSION COUNTDOWN
+   ============================================================ */
+let countdownTimer = null;
+function startCountdown(until){
+  if(countdownTimer) clearInterval(countdownTimer);
+  if(!until) return;
+  function tick(){
+    const diff = Math.max(0, until - Date.now());
+    const d = Math.floor(diff/86400000);
+    const h = Math.floor((diff%86400000)/3600000);
+    const m = Math.floor((diff%3600000)/60000);
+    const s = Math.floor((diff%60000)/1000);
+    document.getElementById('cd-d').textContent = String(d).padStart(2,'0');
+    document.getElementById('cd-h').textContent = String(h).padStart(2,'0');
+    document.getElementById('cd-m').textContent = String(m).padStart(2,'0');
+    document.getElementById('cd-s').textContent = String(s).padStart(2,'0');
+    if(diff<=0) clearInterval(countdownTimer);
+  }
+  tick();
+  countdownTimer = setInterval(tick,1000);
+}
+
+/* ============================================================
+   AUTO-RESUME SESSION — if a token is already stored (from a
+   previous visit) and the backend is reachable, skip straight
+   to the app instead of making the person log in again.
+   ============================================================ */
+(async function autoResume(){
+  const storedNick = safeGet('commons_nickname');
+  if(authToken && storedNick){
+    state.nickname = storedNick;
+    try{
+      await enterApp();
+    }catch(err){
+      // backend unreachable or token expired — fall back to the landing screen silently
+    }
+  }
+})();
+
+</script>
+</body>
+</html>
